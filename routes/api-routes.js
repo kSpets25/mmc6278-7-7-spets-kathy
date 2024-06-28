@@ -93,12 +93,21 @@ router.post('/user', async (req, res) => {
   const {username, password} = req.body
   // if the username or password is not provided, return a 400 status
   if (!username, password)
-  return res.status(400)
+  return res.status(400).send ("Please provide a valid username or password.");
+
   // hash the password using bcrypt.hash and use 10 salt rounds
+  const hashPassword = await bcrypt.hash(password, 10);
+  await db.query(
+    'INSERT INTO users (username, password) VALUES (?, ?)',
+    [username, hash]
+  )
+  res.redirect('/login')
+  if (error.code === 'ER_DUP_ENTRY')
+    return res.status(409).send ('User already exists')
+  res.status(500).send('Error Creating User: ' + err.message || err.sqlMessage)
   
   // then insert the username and hashed password into the users table
   // and redirect the user to the /login page
-
   // if an error occurs with a code property equal to 'ER_DUP_ENTRY'
   // return a 409 status code (the user exists already)
   // for any other error, return a 500 status
