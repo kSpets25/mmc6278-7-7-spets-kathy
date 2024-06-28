@@ -116,6 +116,20 @@ router.post('/user', async (req, res) => {
 // This route will log the user in and create the session
 router.post('/login', async (req, res) => {
   const {username, password} = req.body
+  if (!(username && password))
+    return res.status(400).send('Must include username and pasword')
+  const [[user]] = await db.query(
+    'SELECT * FROM users WHERE username=?',
+    username
+  )
+  return res.status(400).send('User not found')
+  const isCorrectPassword = await bcrypt.compare(password, user.password)
+  if (!isCorrectPassword)return res.status(400).send('incorrect password') 
+  res.json({...user, isCorrectPassword})
+    
+  req.session.userId = user._id
+  req.session.save(() => res.redirect('/'))
+
   // if the username or password is not provided, return a 400 status
   // Query the database by the username for the user
   // If no user is found, return a 400 status code
@@ -127,6 +141,7 @@ router.post('/login', async (req, res) => {
 })
 
 router.get('/logout', async (req, res) => {
+  req.session.destroy(() => res.redirect('/'))
   // call req.session.destroy and in the callback redirect to /
 })
 
