@@ -19,20 +19,20 @@ CREATE TABLE users (
   username VARCHAR(100) NOT NULL UNIQUE,
   password VARCHAR(200) NOT NULL
 
-)
+);
 
 CREATE TABLE cart (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   inventory_id INT NOT NULL,
 -- add a user_id column that's an int
   user_id INT NOT NULL,
-  is_done BOULEAN DEFAULT false,
+
   quantity INT NOT NULL DEFAULT 1,
-  FOREIGN KEY (inventory_id),
-    REFERENCES inventory (id),
+  FOREIGN KEY (inventory_id)
+    REFERENCES inventory (id)
     ON DELETE CASCADE,
 -- add a foreign key constraint to user_id just like inventory_id
   FOREIGN KEY (user_id)
-    REFERENCES user (id)
-    ON DELETE CASCADE ON UPDATE CASCADE
+    REFERENCES users (id)
+    ON DELETE CASCADE
 );
