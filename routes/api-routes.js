@@ -6,8 +6,8 @@ const checkAuth = require('../middleware/auth')
 router
   .route('/cart')
   .post(checkAuth, async (req, res) => {
-    const {quantity} = req.body
-    const {inventoryId} = req.query
+    const { quantity } = req.body
+    const { inventoryId } = req.query
     const [[item]] = await db.query(
       `SELECT * FROM inventory WHERE id=?`,
       [inventoryId]
@@ -50,24 +50,24 @@ router
 router
   .route('/cart/:cartId')
   .put(checkAuth, async (req, res) => {
-    const {quantity} = req.body
+    const { quantity } = req.body
     const [[cartItem]] = await db.query(
       `SELECT
         inventory.quantity as inventoryQuantity
         FROM cart
         LEFT JOIN inventory on cart.inventory_id=inventory.id
         WHERE cart.id=? AND cart.user_id=?`,
-        [req.params.cartId, req.session.userId]
+      [req.params.cartId, req.session.userId]
     )
     if (!cartItem)
       return res.status(404).send('Not found')
-    const {inventoryQuantity} = cartItem
+    const { inventoryQuantity } = cartItem
     if (quantity > inventoryQuantity)
       return res.status(409).send('Not enough inventory')
     if (quantity > 0) {
       await db.query(
         `UPDATE cart SET quantity=? WHERE id=? AND user_id=?`
-        ,[quantity, req.params.cartId, req.session.userId]
+        , [quantity, req.params.cartId, req.session.userId]
       )
     } else {
       await db.query(
@@ -78,7 +78,7 @@ router
     res.status(204).end()
   })
   .delete(checkAuth, async (req, res) => {
-    const [{affectedRows}] = await db.query(
+    const [{ affectedRows }] = await db.query(
       `DELETE FROM cart WHERE id=? AND user_id=?`,
       [req.params.cartId, req.session.userId]
     )
@@ -90,22 +90,25 @@ router
 
 // This route should create a new User
 router.post('/user', async (req, res) => {
-  const {username, password} = req.body
-  // if the username or password is not provided, return a 400 status
-  if (!username, password)
-  return res.status(400).send ("Please provide a valid username or password.");
+  const { username, password } = req.body
 
-  // hash the password using bcrypt.hash and use 10 salt rounds
-  const hashPassword = await bcrypt.hash(password, 10);
-  await db.query(
-    'INSERT INTO users (username, password) VALUES (?, ?)',
-    [username, hash]
-  )
-  res.redirect('/login')
-  if (error.code === 'ER_DUP_ENTRY')
-    return res.status(409).send ('User already exists')
-  res.status(500).send('Error Creating User: ' + err.message || err.sqlMessage)
-  
+  // if the username or password is not provided, return a 400 status
+  if (!(username && password))
+    return res.status(400).send("Please provide a valid username or password.");
+
+  try {
+    // hash the password using bcrypt.hash and use 10 salt rounds
+    const hashPassword = await bcrypt.hash(password, 10);
+    await db.query(
+      'INSERT INTO users (username, password) VALUES (?, ?)',
+      [username, hashPassword])
+    res.redirect('/login')
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY')
+      return res.status(409).send('User already exists')
+    res.status(500).send('Error Creating User: ' + err.message || err.sqlMessage)
+  }
+
   // then insert the username and hashed password into the users table
   // and redirect the user to the /login page
   // if an error occurs with a code property equal to 'ER_DUP_ENTRY'
@@ -115,18 +118,22 @@ router.post('/user', async (req, res) => {
 
 // This route will log the user in and create the session
 router.post('/login', async (req, res) => {
-  const {username, password} = req.body
+  const { username, password } = req.body
   if (!(username && password))
     return res.status(400).send('Must include username and pasword')
+
   const [[user]] = await db.query(
     'SELECT * FROM users WHERE username=?',
     username
   )
-  return res.status(400).send('User not found')
+  if (!user)
+    return res.status(400).send('User not found')
+
   const isCorrectPassword = await bcrypt.compare(password, user.password)
-  if (!isCorrectPassword)return res.status(400).send('incorrect password') 
-  res.json({...user, isCorrectPassword})
-    
+  if (!isCorrectPassword)
+    return res.status(400).send('incorrect password')
+
+  req.session.loggedIn = true
   req.session.userId = user._id
   req.session.save(() => res.redirect('/'))
 
