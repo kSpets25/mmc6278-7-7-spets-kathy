@@ -134,7 +134,8 @@ router.post('/login', async (req, res) => {
     return res.status(400).send('incorrect password')
 
   req.session.loggedIn = true
-  req.session.userId = user._id
+  req.session.userId = user.id
+  console.log(user)
   req.session.save(() => res.redirect('/'))
 
   // if the username or password is not provided, return a 400 status
